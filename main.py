@@ -1,23 +1,17 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import requests
 
-# Configuração da página
+# Configuração da página para ocupar a largura total e ter um aspeto profissional
 st.set_page_config(page_title="Painel de Métricas - Google Ads", page_icon="📊", layout="wide")
 
 st.title("📊 Painel de Métricas - Google Ads")
 st.markdown("Acompanhamento de desempenho de **segunda a sexta-feira** (Integrado com Google Sheets).")
 
-# Substitua abaixo pelo link público de exportação CSV da sua planilha do Google Sheets
-# Como obter o link CSV: Partilhe a planilha como leitor, copie o link normal, 
-# e substitua o final "/edit?usp=sharing" por "/export?format=csv"
+# URL de exportação direta da sua planilha do Google Sheets
 @st.cache_data(ttl=600) # Atualiza os dados a cada 10 minutos
 def carregar_dados_sheets():
-    # Exemplo de URL de exportação CSV do Google Sheets:
-    # URL formato: https://docs.google.com/spreadsheets/d/SEU_ID_DA_PLANILHA/export?format=csv
-    url_planilha = "COLE_AQUI_O_LINK_DE_EXPORTACAO_CSV_DA_ SUA_PLANILHA"
-    
+    url_planilha = "https://docs.google.com/spreadsheets/d/1ufXNK1ot-6XdPy0Zu08s8CDHep9RZRIQr-xtGRkEoU/export?format=csv"
     try:
         df = pd.read_csv(url_planilha)
         return df
@@ -26,7 +20,7 @@ def carregar_dados_sheets():
 
 df = carregar_dados_sheets()
 
-if df is not None:
+if df is not None and not df.empty:
     # Limpeza básica dos nomes das colunas
     df.columns = df.columns.str.strip()
     
@@ -57,7 +51,7 @@ if df is not None:
     else:
         df['Custo_Num'] = 0.0
 
-    # Cartões de Métricas (KPIs)
+    # Cartões de Métricas (KPIs) no topo
     st.markdown("### 🚀 Visão Geral (Segunda a Sexta)")
     col1, col2, col3, col4 = st.columns(4)
 
@@ -119,5 +113,5 @@ if df is not None:
     st.dataframe(df.drop(columns=['Custo_Num'], errors='ignore'), use_container_width=True)
 
 else:
-    st.warning("⚠️ Não foi possível ligar à planilha do Google Sheets.")
-    st.info("Certifique-se de que substituiu a variável `url_planilha` pelo link correto de exportação CSV e que a planilha está partilhada publicamente como leitor.")
+    st.warning("⚠️ Não foi possível carregar os dados da planilha do Google Sheets.")
+    st.info("Certifique-se de que a planilha contém dados preenchidos e está partilhada publicamente como Leitor.")
