@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
 # Configuração da página
 st.set_page_config(page_title="Painel de Métricas - Google Ads", page_icon="📊", layout="wide")
@@ -33,7 +34,7 @@ if df is not None:
                 errors='coerce'
             ).fillna(0)
 
-    # Tratamento seguro da coluna de Custo (removendo R$, espaços especiais e formatando)
+    # Tratamento seguro da coluna de Custo
     if 'Custo' in df.columns:
         custo_limpo = (
             df['Custo'].astype(str)
@@ -47,19 +48,9 @@ if df is not None:
     else:
         df['Custo_Num'] = 0.0
 
-    # Tratamento seguro da coluna de CPC médio
-    if 'CPC méd.' in df.columns:
-        cpc_limpo = (
-            df['CPC méd.'].astype(str)
-            .str.replace('R$', '', regex=False)
-            .str.replace('\xa0', '', regex=False)
-            .str.replace('.', '', regex=False)
-            .str.replace(',', '.', regex=False)
-            .str.strip()
-        )
-        df['CPC_Num'] = pd.to_numeric(cpc_limpo, errors='coerce').fillna(0)
-    else:
-        df['CPC_Num'] = 0.0
+    # Adicionar uma coluna de data real para ordenar cronologicamente se necessário
+    # Como as datas estão em formato descritivo, vamos manter a ordem original ou ordenar pelo índice correto
+    # Vamos garantir que o eixo X exibe os dados de forma limpa
 
     # Cartões de Métricas (KPIs) no topo
     st.markdown("### 🚀 Visão Geral")
@@ -83,26 +74,46 @@ if df is not None:
 
     st.divider()
 
-    # Gráficos Visuais Modernos
+    # Gráficos Profissionais com Plotly
     st.markdown("### 📈 Evolução Temporal")
     col_graf1, col_graf2 = st.columns(2)
     
     data_col = [c for c in df.columns if 'Data' in c or 'dia' in c.lower()]
+    
     if data_col and 'Cliques' in df.columns:
         with col_graf1:
-            st.subheader("Cliques por Dia")
-            st.line_chart(df.set_index(data_col[0])['Cliques'])
+            # Gráfico de Linha Moderno (Plotly)
+            fig_cliques = px.line(
+                df, 
+                x=data_col[0], 
+                y='Cliques', 
+                title="Evolução de Cliques por Dia",
+                markers=True,
+                template="plotly_white"
+            )
+            fig_cliques.update_traces(line_color='#2563eb', line_width=3, marker_size=8)
+            fig_cliques.update_layout(xaxis_title="", yaxis_title="Cliques", margin=dict(l=20, r=20, t=40, b=20))
+            st.plotly_chart(fig_cliques, use_container_width=True)
             
     if data_col and 'Impressões' in df.columns:
         with col_graf2:
-            st.subheader("Impressões por Dia")
-            st.bar_chart(df.set_index(data_col[0])['Impressões'])
+            # Gráfico de Barras Moderno (Plotly)
+            fig_impr = px.bar(
+                df, 
+                x=data_col[0], 
+                y='Impressões', 
+                title="Evolução de Impressões por Dia",
+                template="plotly_white"
+            )
+            fig_impr.update_traces(marker_color='#0284c7')
+            fig_impr.update_layout(xaxis_title="", yaxis_title="Impressões", margin=dict(l=20, r=20, t=40, b=20))
+            st.plotly_chart(fig_impr, use_container_width=True)
 
     st.divider()
 
     # Tabela Detalhada
     st.markdown("### 📋 Dados Detalhados")
-    st.dataframe(df.drop(columns=['Custo_Num', 'CPC_Num'], errors='ignore'), use_container_width=True)
+    st.dataframe(df.drop(columns=['Custo_Num'], errors='ignore'), use_container_width=True)
 
 else:
     st.warning("⚠️ O ficheiro `dados.csv` não foi encontrado no repositório do GitHub.")
