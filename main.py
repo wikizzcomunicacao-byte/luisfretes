@@ -6,7 +6,7 @@ import plotly.express as px
 st.set_page_config(page_title="Painel de Métricas - Google Ads", page_icon="📊", layout="wide")
 
 st.title("📊 Painel de Métricas - Google Ads")
-st.markdown("Acompanhamento de desempenho das campanhas em tempo real.")
+st.markdown("Acompanhamento de desempenho de **segunda a sexta-feira** (Dias Úteis).")
 
 # Função para carregar o CSV do GitHub com segurança
 @st.cache_data
@@ -26,6 +26,12 @@ if df is not None:
     # Limpeza básica dos nomes das colunas
     df.columns = df.columns.str.strip()
     
+    # Filtrar apenas de segunda a sexta-feira (excluindo domingos e sábados)
+    if 'Data' in df.columns:
+        # Remove linhas que contenham 'dom.' ou 'sáb.'
+        finais_de_semana = df['Data'].str.contains('dom\.|sáb\.', case=False, na=False)
+        df = df[~finais_de_semana].reset_index(drop=True)
+
     # Tratamento de colunas numéricas de cliques e impressões
     for col in ['Cliques', 'Impressões']:
         if col in df.columns:
@@ -48,12 +54,8 @@ if df is not None:
     else:
         df['Custo_Num'] = 0.0
 
-    # Adicionar uma coluna de data real para ordenar cronologicamente se necessário
-    # Como as datas estão em formato descritivo, vamos manter a ordem original ou ordenar pelo índice correto
-    # Vamos garantir que o eixo X exibe os dados de forma limpa
-
-    # Cartões de Métricas (KPIs) no topo
-    st.markdown("### 🚀 Visão Geral")
+    # Cartões de Métricas (KPIs) recalculados apenas para dias úteis
+    st.markdown("### 🚀 Visão Geral (Segunda a Sexta)")
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
@@ -74,20 +76,19 @@ if df is not None:
 
     st.divider()
 
-    # Gráficos Profissionais com Plotly
-    st.markdown("### 📈 Evolução Temporal")
+    # Gráficos Profissionais com Plotly (Apenas Dias Úteis)
+    st.markdown("### 📈 Evolução Temporal (Dias Úteis)")
     col_graf1, col_graf2 = st.columns(2)
     
     data_col = [c for c in df.columns if 'Data' in c or 'dia' in c.lower()]
     
     if data_col and 'Cliques' in df.columns:
         with col_graf1:
-            # Gráfico de Linha Moderno (Plotly)
             fig_cliques = px.line(
                 df, 
                 x=data_col[0], 
                 y='Cliques', 
-                title="Evolução de Cliques por Dia",
+                title="Cliques por Dia (Seg-Sex)",
                 markers=True,
                 template="plotly_white"
             )
@@ -97,12 +98,11 @@ if df is not None:
             
     if data_col and 'Impressões' in df.columns:
         with col_graf2:
-            # Gráfico de Barras Moderno (Plotly)
             fig_impr = px.bar(
                 df, 
                 x=data_col[0], 
                 y='Impressões', 
-                title="Evolução de Impressões por Dia",
+                title="Impressões por Dia (Seg-Sex)",
                 template="plotly_white"
             )
             fig_impr.update_traces(marker_color='#0284c7')
@@ -112,7 +112,7 @@ if df is not None:
     st.divider()
 
     # Tabela Detalhada
-    st.markdown("### 📋 Dados Detalhados")
+    st.markdown("### 📋 Dados Detalhados (Segunda a Sexta)")
     st.dataframe(df.drop(columns=['Custo_Num'], errors='ignore'), use_container_width=True)
 
 else:
