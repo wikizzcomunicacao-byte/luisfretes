@@ -25,44 +25,61 @@ if df is not None:
     # Limpeza básica dos nomes das colunas
     df.columns = df.columns.str.strip()
     
-    # Conversão segura de colunas numéricas principais
+    # Tratamento de colunas numéricas de cliques e impressões
     for col in ['Cliques', 'Impressões']:
         if col in df.columns:
-            df[col] = pd.to_numeric(df[col].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False), errors='coerce').fillna(0)
+            df[col] = pd.to_numeric(
+                df[col].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False), 
+                errors='coerce'
+            ).fillna(0)
+
+    # Tratamento seguro da coluna de Custo (removendo R$, espaços especiais e formatando)
+    if 'Custo' in df.columns:
+        custo_limpo = (
+            df['Custo'].astype(str)
+            .str.replace('R$', '', regex=False)
+            .str.replace('\xa0', '', regex=False)
+            .str.replace('.', '', regex=False)
+            .str.replace(',', '.', regex=False)
+            .str.strip()
+        )
+        df['Custo_Num'] = pd.to_numeric(custo_limpo, errors='coerce').fillna(0)
+    else:
+        df['Custo_Num'] = 0.0
+
+    # Tratamento seguro da coluna de CPC médio
+    if 'CPC méd.' in df.columns:
+        cpc_limpo = (
+            df['CPC méd.'].astype(str)
+            .str.replace('R$', '', regex=False)
+            .str.replace('\xa0', '', regex=False)
+            .str.replace('.', '', regex=False)
+            .str.replace(',', '.', regex=False)
+            .str.strip()
+        )
+        df['CPC_Num'] = pd.to_numeric(cpc_limpo, errors='coerce').fillna(0)
+    else:
+        df['CPC_Num'] = 0.0
 
     # Cartões de Métricas (KPIs) no topo
     st.markdown("### 🚀 Visão Geral")
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        total_cliques = df['Cliques'].sum() if 'Cliques' in df.columns else 0
-        st.metric(label="Total de Cliques", value=f"{int(total_cliques):,}")
+        total_cliques = int(df['Cliques'].sum())
+        st.metric(label="Total de Cliques", value=f"{total_cliques:,}")
 
     with col2:
-        total_impressoes = df['Impressões'].sum() if 'Impressões' in df.columns else 0
-        st.metric(label="Total de Impressões", value=f"{int(total_impressoes):,}")
+        total_impressoes = int(df['Impressões'].sum())
+        st.metric(label="Total de Impressões", value=f"{total_impressoes:,}")
 
     with col3:
-        custo_col = [c for c in df.columns if 'Custo' in c or 'Valor' in c or 'Investimento' in c]
-        custo_val = 0.0
-        if custo_col:
-            try:
-                serie = df[custo_col[0]].astype(str).str.replace('R$', '', regex=False).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
-                custo_val = pd.to_numeric(serie, errors='coerce').sum()
-            except Exception:
-                custo_val = 0.0
-        st.metric(label="Investimento Total", value=f"R$ {custo_val:,.2f}")
+        total_custo = df['Custo_Num'].sum()
+        st.metric(label="Investimento Total", value=f"R$ {total_custo:,.2f}")
 
     with col4:
-        cpc_col = [c for c in df.columns if 'CPC' in c]
-        cpc_val = 0.0
-        if cpc_col:
-            try:
-                serie_cpc = df[cpc_col[0]].astype(str).str.replace('R$', '', regex=False).str.replace(',', '.', regex=False)
-                cpc_val = pd.to_numeric(serie_cpc, errors='coerce').mean()
-            except Exception:
-                cpc_val = 0.0
-        st.metric(label="CPC Médio", value=f"R$ {cpc_val:,.2f}")
+        cpc_medio = (total_custo / total_cliques) if total_cliques > 0 else 0.0
+        st.metric(label="CPC Médio", value=f"R$ {cpc_medio:,.2f}")
 
     st.divider()
 
@@ -85,7 +102,7 @@ if df is not None:
 
     # Tabela Detalhada
     st.markdown("### 📋 Dados Detalhados")
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df.drop(columns=['Custo_Num', 'CPC_Num'], errors='ignore'), use_container_width=True)
 
 else:
     st.warning("⚠️ O ficheiro `dados.csv` não foi encontrado no repositório do GitHub.")
