@@ -1,5 +1,3 @@
 streamlit
 pandas
-fastapi
-uvicorn
-google-ads
+plotly
