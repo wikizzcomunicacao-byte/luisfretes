@@ -1,26 +1,30 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import requests
 
 # Configuração da página
 st.set_page_config(page_title="Painel de Métricas - Google Ads", page_icon="📊", layout="wide")
 
 st.title("📊 Painel de Métricas - Google Ads")
-st.markdown("Acompanhamento de desempenho de **segunda a sexta-feira** (Dias Úteis).")
+st.markdown("Acompanhamento de desempenho de **segunda a sexta-feira** (Integrado com Google Sheets).")
 
-# Função para carregar o CSV do GitHub com segurança
-@st.cache_data
-def carregar_dados():
-    nome_ficheiro = "dados.csv"
-    for enc in ['utf-8', 'ISO-8859-1', 'cp1252']:
-        try:
-            df = pd.read_csv(nome_ficheiro, encoding=enc)
-            return df
-        except Exception:
-            continue
-    return None
+# Substitua abaixo pelo link público de exportação CSV da sua planilha do Google Sheets
+# Como obter o link CSV: Partilhe a planilha como leitor, copie o link normal, 
+# e substitua o final "/edit?usp=sharing" por "/export?format=csv"
+@st.cache_data(ttl=600) # Atualiza os dados a cada 10 minutos
+def carregar_dados_sheets():
+    # Exemplo de URL de exportação CSV do Google Sheets:
+    # URL formato: https://docs.google.com/spreadsheets/d/SEU_ID_DA_PLANILHA/export?format=csv
+    url_planilha = "COLE_AQUI_O_LINK_DE_EXPORTACAO_CSV_DA_ SUA_PLANILHA"
+    
+    try:
+        df = pd.read_csv(url_planilha)
+        return df
+    except Exception as e:
+        return None
 
-df = carregar_dados()
+df = carregar_dados_sheets()
 
 if df is not None:
     # Limpeza básica dos nomes das colunas
@@ -28,7 +32,6 @@ if df is not None:
     
     # Filtrar apenas de segunda a sexta-feira (excluindo domingos e sábados)
     if 'Data' in df.columns:
-        # Remove linhas que contenham 'dom.' ou 'sáb.'
         finais_de_semana = df['Data'].str.contains('dom\.|sáb\.', case=False, na=False)
         df = df[~finais_de_semana].reset_index(drop=True)
 
@@ -54,7 +57,7 @@ if df is not None:
     else:
         df['Custo_Num'] = 0.0
 
-    # Cartões de Métricas (KPIs) recalculados apenas para dias úteis
+    # Cartões de Métricas (KPIs)
     st.markdown("### 🚀 Visão Geral (Segunda a Sexta)")
     col1, col2, col3, col4 = st.columns(4)
 
@@ -76,7 +79,7 @@ if df is not None:
 
     st.divider()
 
-    # Gráficos Profissionais com Plotly (Apenas Dias Úteis)
+    # Gráficos Profissionais com Plotly
     st.markdown("### 📈 Evolução Temporal (Dias Úteis)")
     col_graf1, col_graf2 = st.columns(2)
     
@@ -116,5 +119,5 @@ if df is not None:
     st.dataframe(df.drop(columns=['Custo_Num'], errors='ignore'), use_container_width=True)
 
 else:
-    st.warning("⚠️ O ficheiro `dados.csv` não foi encontrado no repositório do GitHub.")
-    st.info("Certifique-se de que o ficheiro se chama exatamente `dados.csv` e está na raiz do repositório.")
+    st.warning("⚠️ Não foi possível ligar à planilha do Google Sheets.")
+    st.info("Certifique-se de que substituiu a variável `url_planilha` pelo link correto de exportação CSV e que a planilha está partilhada publicamente como leitor.")
